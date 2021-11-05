@@ -1,4 +1,4 @@
-FROM confluentinc/cp-kafka:latest
+FROM confluentinc/cp-kafka:6.2.1-1-ubi8
 
 ARG broker_id
 ARG zookeeper_connect
