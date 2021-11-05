@@ -30,10 +30,12 @@ signs:
   - artifacts: checksum
     args:
       - "--local-user"
-      - "A29F60D591A974E20B5E90695C886ACC44EB17C0"
+      - "F038B43018F0510D288954C3E8993438741F6AB8"
       - "--output"
       - "${signature}"
       - "--detach-sign"
       - "${artifact}"
 snapshot:
   name_template: "{{ .Version }}-next"
+release:
+  draft: true
