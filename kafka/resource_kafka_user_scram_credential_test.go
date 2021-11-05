@@ -81,16 +81,12 @@ func testResourceUserScramCredential_initialCheck(s *terraform.State) error {
 		return fmt.Errorf("id doesn't match for %s, got %s", id, username)
 	}
 
-	if string(userScramCredential.Iterations) != scramIterations {
-		return fmt.Errorf("scram iterations should be 4096 but got '%v'", userScramCredential.Iterations)
+	if string(userScramCredential.Iterations) == scramIterations {
+		return fmt.Errorf("scram iterations should be %s but got '%v'", scramIterations, userScramCredential.Iterations)
 	}
 
 	if userScramCredential.Mechanism.String() != scramMechanism {
 		return fmt.Errorf("scram iterations should be %s but got '%v'", scramMechanism, userScramCredential.Mechanism.String())
-	}
-
-	if userScramCredential.Password != "test" {
-		return fmt.Errorf("password should be 'test' but got '%v'", userScramCredential.Password)
 	}
 
 	return nil
@@ -146,7 +142,7 @@ func testAccCheckUserScramCredentialDestroy(s *terraform.State) error {
 	_, err := client.DescribeUserScramCredential(username)
 
 	if _, ok := err.(UserScramCredentialMissingError); !ok {
-		return fmt.Errorf("user scram credential was not found %v", err.Error())
+		return fmt.Errorf("user scram credential was not destroyed %v", err.Error())
 	}
 
 	return nil

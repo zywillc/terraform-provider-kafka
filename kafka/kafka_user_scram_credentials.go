@@ -39,21 +39,22 @@ func generateRandomBytes(n int) ([]byte, error) {
 	return b, err
 }
 
-func prepareUpsert(userScramCredential UserScramCredential) (*sarama.AlterUserScramCredentialsUpsert, error) {
+func prepareUpsert(userScramCredential UserScramCredential) (sarama.AlterUserScramCredentialsUpsert, error) {
 	var ret sarama.AlterUserScramCredentialsUpsert
 	ret.Name = userScramCredential.Name
 	ret.Mechanism = userScramCredential.Mechanism
+	ret.Iterations = userScramCredential.Iterations
 	ret.Password = []byte(userScramCredential.Password)
 	salt, err := generateRandomBytes(saltSize)
 	ret.Salt = append(ret.Salt, salt...)
-	return &ret, err
+	return ret, err
 }
 
-func prepareDelete(userScramCredential UserScramCredential) *sarama.AlterUserScramCredentialsDelete {
+func prepareDelete(userScramCredential UserScramCredential) sarama.AlterUserScramCredentialsDelete {
 	var ret sarama.AlterUserScramCredentialsDelete
 	ret.Name = userScramCredential.Name
 	ret.Mechanism = userScramCredential.Mechanism
-	return &ret
+	return ret
 }
 
 
@@ -64,12 +65,11 @@ func (c *Client) UpsertUserScramCredential(userScramCredential UserScramCredenti
 		return err
 	}
 	upsert, err := prepareUpsert(userScramCredential)
-
 	if err != nil {
 		return err
 	}
 
-	results, err := admin.UpsertUserScramCredentials([]sarama.AlterUserScramCredentialsUpsert{*upsert})
+	results, err := admin.UpsertUserScramCredentials([]sarama.AlterUserScramCredentialsUpsert{upsert})
 
 	if err != nil {
 		log.Printf("[ERROR] Error upserting user scram credential %v", err)
@@ -92,7 +92,7 @@ func (c *Client) DeleteUserScramCredential(userScramCredential UserScramCredenti
 		return err
 	}
 	delete := prepareDelete(userScramCredential)
-	results, err := admin.DeleteUserScramCredentials([]sarama.AlterUserScramCredentialsDelete{*delete})
+	results, err := admin.DeleteUserScramCredentials([]sarama.AlterUserScramCredentialsDelete{delete})
 
 	if err != nil {
 		log.Printf("[ERROR] Error deleting user scram credential %v", err)
@@ -103,6 +103,7 @@ func (c *Client) DeleteUserScramCredential(userScramCredential UserScramCredenti
 		if res.ErrorCode != sarama.ErrNoError {
 			return res.ErrorCode
 		}
+		log.Printf("[DEBUG] user '%s' was deleted.", res.User)
 	}
 
 	return nil
@@ -122,14 +123,10 @@ func (c *Client) DescribeUserScramCredential(username string) (*UserScramCredent
 		return nil, err
 	}
 
-	if len(results) < 1 {
-		return nil, UserScramCredentialMissingError{msg: fmt.Sprintf("user scram credential %s could not be found", username)}
-	}
-
 	res := []UserScramCredential{}
 	for _, result := range results {
 		if result.ErrorCode != sarama.ErrNoError {
-			return nil, fmt.Errorf("Error describing user scram credential '%s': %s", username, *result.ErrorMessage)
+			return nil, UserScramCredentialMissingError{msg: fmt.Sprintf("user scram credential %s could not be found", username)}
 		}
 		r := UserScramCredential{
 			Name: result.User,

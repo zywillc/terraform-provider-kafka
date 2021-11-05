@@ -30,7 +30,7 @@ func kafkaUserScramCredentialResource() *schema.Resource {
 			"scram_mechanism": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ForceNew:         false,
+				ForceNew:         true,
 				Default: 		  sarama.SASLTypeSCRAMSHA512,
 				ValidateDiagFunc: validateDiagFunc(validation.StringInSlice([]string{sarama.SASLTypeSCRAMSHA256, sarama.SASLTypeSCRAMSHA512}, false)),
 				Description:      "The required mechanism of the scram (SCRAM_SHA_256, SCRAM_SHA_512)",
@@ -57,7 +57,7 @@ func kafkaUserScramCredentialResource() *schema.Resource {
 func userScramCredentialCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*LazyClient)
 	userScramCredential := parseUserScramCredential(d)
-	log.Printf("[INFO] Creating user scram credential %s", userScramCredential)
+	log.Printf("[INFO] Start creating user scram credential %s", userScramCredential)
 
 	err := c.UpsertUserScramCredential(userScramCredential)
 	if err != nil {
@@ -76,7 +76,7 @@ func userScramCredentialCreate(ctx context.Context, d *schema.ResourceData, meta
 func userScramCredentialUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*LazyClient)
 	userScramCredential := parseUserScramCredential(d)
-	log.Printf("[INFO] Updating user scram credential %s", userScramCredential)
+	log.Printf("[INFO] Start updating user scram credential %s", userScramCredential)
 
 	err := c.UpsertUserScramCredential(userScramCredential)
 	if err != nil {
@@ -94,7 +94,7 @@ func userScramCredentialUpdate(ctx context.Context, d *schema.ResourceData, meta
 func userScramCredentialDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*LazyClient)
 	userScramCredential := parseUserScramCredential(d)
-	log.Printf("[INFO] Deleting user scram credential %s", userScramCredential)
+	log.Printf("[INFO] Start deleting user scram credential %s", userScramCredential)
 
 	err := c.DeleteUserScramCredential(userScramCredential)
 	if err != nil {
@@ -106,7 +106,7 @@ func userScramCredentialDelete(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func userScramCredentialRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Println("[INFO] Reading UserScramCredential")
+	log.Println("[INFO] Start reading UserScramCredential")
 	c := meta.(*LazyClient)
 
 	username := d.Get("username").(string)
@@ -129,7 +129,7 @@ func userScramCredentialRead(ctx context.Context, d *schema.ResourceData, meta i
 	errSet := errSetter{d: d}
 	errSet.Set("username", userScramCredential.Name)
 	errSet.Set("scram_mechanism", userScramCredential.Mechanism.String())
-	errSet.Set("scram_iterations", userScramCredential.Iterations)
+	errSet.Set("scram_iterations", int(userScramCredential.Iterations))
 	if errSet.err != nil {
 		return diag.FromErr(errSet.err)
 	}
@@ -144,7 +144,7 @@ func parseUserScramCredential(d *schema.ResourceData) UserScramCredential {
 	return UserScramCredential{
 		Name: d.Get("username").(string),
 		Mechanism: mechanism,
-		Iterations: d.Get("scram_iterations").(int32),
+		Iterations: int32(d.Get("scram_iterations").(int)),
 		Password: d.Get("password").(string),
 	}
 }
@@ -187,7 +187,7 @@ func userScramCredentialRefreshFunc(client *LazyClient, username string, expecte
 		actual, err := client.DescribeUserScramCredential(username)
 		if err != nil {
 			log.Printf("[ERROR] could not read user scram credential %s, %s", username, err)
-			return *actual, "Error", err
+			return actual, "Error", err
 		}
 
 		return *actual, "Ready", nil
