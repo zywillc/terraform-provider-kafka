@@ -49,6 +49,7 @@ func kafkaUserScramCredentialResource() *schema.Resource {
 				ForceNew:    false,
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 				Description: "The password of the credential",
+				Sensitive: true,
 			},
 		},
 	}
